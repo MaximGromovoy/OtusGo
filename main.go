@@ -1,8 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"./chessBoard"
+)
 
 func main() {
+	CreateAndPrintBoard(10)
+}
 
-	fmt.Println("Hello Go from feature branch!")
+func CreateAndPrintBoard(boardSize uint) {
+	chessBoard.New(boardSize).PrintBoard()
 }
