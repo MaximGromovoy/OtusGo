@@ -30,7 +30,7 @@ func (randomCurrencyService *RandomCurrencyService) StartGenerateCurrencies(curr
 	go func() {
 		defer wg.Done()
 
-		ticker := time.NewTicker(100 * time.Millisecond)
+		ticker := time.NewTicker(50 * time.Millisecond)
 		defer ticker.Stop()
 
 		timeout := time.After(1 * time.Second)
@@ -41,7 +41,7 @@ func (randomCurrencyService *RandomCurrencyService) StartGenerateCurrencies(curr
 				close(currencyChannel)
 				return
 			case <-ticker.C:
-				for range 5 {
+				for range 1 {
 					currencyChannel <- randomCurrencyService.getRandomCurrency()
 				}
 			}
