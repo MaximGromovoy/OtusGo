@@ -3,6 +3,7 @@ package randomCurrencyService
 import (
 	"OtusGo/internal/model/currency"
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -23,23 +24,29 @@ func (randomCurrencyService *RandomCurrencyService) GetRandomCurrencies() (curre
 	return
 }
 
-func (randomCurrencyService *RandomCurrencyService) GenerateCurrencies(currencyChannel chan currency.CurrencyInterface) {
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
+func (randomCurrencyService *RandomCurrencyService) StartGenerateCurrencies(currencyChannel chan currency.CurrencyInterface, wg *sync.WaitGroup) {
+	wg.Add(1)
 
-	timeout := time.After(1 * time.Second)
+	go func() {
+		defer wg.Done()
 
-	for {
-		select {
-		case <-timeout:
-			close(currencyChannel)
-			return
-		case <-ticker.C:
-			for range 5 {
-				currencyChannel <- randomCurrencyService.getRandomCurrency()
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+
+		timeout := time.After(1 * time.Second)
+
+		for {
+			select {
+			case <-timeout:
+				close(currencyChannel)
+				return
+			case <-ticker.C:
+				for range 5 {
+					currencyChannel <- randomCurrencyService.getRandomCurrency()
+				}
 			}
 		}
-	}
+	}()
 }
 
 func (randomCurrencyService *RandomCurrencyService) getRandomCurrency() currency.CurrencyInterface {

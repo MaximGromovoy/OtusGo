@@ -2,12 +2,17 @@ package currencyRepository
 
 import (
 	"OtusGo/internal/model/currency"
+	"sync"
 )
 
-func (repo *CurrencyRepository) ListenAndDistribute(currencyChannel <-chan currency.CurrencyInterface) {
-	for currencyItem := range currencyChannel {
-		repo.AddCurrency(currencyItem)
-	}
+func (repo *CurrencyRepository) StartListenAndDistribute(currencyChannel <-chan currency.CurrencyInterface, wg *sync.WaitGroup) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for currencyItem := range currencyChannel {
+			repo.AddCurrency(currencyItem)
+		}
+	}()
 }
 
 func (repo *CurrencyRepository) AddCurrency(c currency.CurrencyInterface) {
