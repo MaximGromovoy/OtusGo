@@ -1,36 +1,30 @@
 package main
 
 import (
+	"OtusGo/internal/model/currency"
 	"OtusGo/internal/repository/currencyRepository"
-	"OtusGo/internal/service"
-	"fmt"
+	"OtusGo/internal/service/currencyDistributor"
+	"OtusGo/internal/service/currencyRepositoryWatcher"
+	"OtusGo/internal/service/randomCurrency"
+	"context"
+	"time"
 )
 
 func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	repository := currencyRepository.NewCurrencyRepository()
-	var currencies = service.GetRandomCurrencies()
-	repository.AddCurrencies(currencies)
-	LogCurrencies(repository)
-}
+	currencyChannel := make(chan currency.CurrencyInterface)
+	stopChannel := make(chan struct{})
 
-func LogCurrencies(repository *currencyRepository.CurrencyRepository) {
-	fmt.Println("Rubles:")
-	for _, ruble := range repository.GetRubles() {
-		fmt.Printf("Name: %s, Code: %s, Value: %.2f\n", ruble.GetName(), ruble.GetCode(), ruble.GetValue())
-	}
+	currencyRepositoryWatcher.StartWatching(repository, stopChannel)
+	randomCurrency.StartRandomCurrencyGenerator(currencyChannel)
+	currencyDistributor.StartDistributeCurrencyInRepository(currencyChannel, repository)
 
-	fmt.Println("\nDollars:")
-	for _, dollar := range repository.GetDollars() {
-		fmt.Printf("Name: %s, Code: %s, Value: %.2f\n", dollar.GetName(), dollar.GetCode(), dollar.GetValue())
-	}
+	<-ctx.Done()
 
-	fmt.Println("\nEuros:")
-	for _, euro := range repository.GetEuros() {
-		fmt.Printf("Name: %s, Code: %s, Value: %.2f\n", euro.GetName(), euro.GetCode(), euro.GetValue())
-	}
+	close(stopChannel)
+	close(currencyChannel)
 
-	fmt.Println("\nLiras:")
-	for _, lira := range repository.GetLiras() {
-		fmt.Printf("Name: %s, Code: %s, Value: %.2f\n", lira.GetName(), lira.GetCode(), lira.GetValue())
-	}
 }
