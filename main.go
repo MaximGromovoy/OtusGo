@@ -3,25 +3,28 @@ package main
 import (
 	"OtusGo/internal/model/currency"
 	"OtusGo/internal/repository/currencyRepository"
+	"OtusGo/internal/service/currencyDistributor"
 	"OtusGo/internal/service/currencyRepositoryWatcher"
-	"OtusGo/internal/service/randomCurrencyService"
-	"sync"
+	"OtusGo/internal/service/randomCurrency"
+	"context"
+	"time"
 )
 
 func main() {
-	var wg sync.WaitGroup
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	repository := currencyRepository.NewCurrencyRepository()
-	watcher := currencyRepositoryWatcher.NewCurrencyRepositoryWatcher(repository)
-	randomCurrencyService := randomCurrencyService.NewRandomCurrencyService()
-
-	watcher.StartWatching()
-
 	currencyChannel := make(chan currency.CurrencyInterface)
-	randomCurrencyService.StartGenerateCurrencies(currencyChannel, &wg)
-	repository.StartListenAndDistribute(currencyChannel, &wg)
+	stopChannel := make(chan struct{})
 
-	wg.Wait()
+	currencyRepositoryWatcher.StartWatching(repository, stopChannel)
+	randomCurrency.StartRandomCurrencyGenerator(currencyChannel)
+	currencyDistributor.StartDistributeCurrencyInRepository(currencyChannel, repository)
 
-	watcher.StopWatching()
+	<-ctx.Done()
+
+	currencyRepositoryWatcher.StopWatching(stopChannel)
+	close(currencyChannel)
+
 }
