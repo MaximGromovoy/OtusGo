@@ -24,7 +24,7 @@ func main() {
 
 	<-ctx.Done()
 
-	currencyRepositoryWatcher.StopWatching(stopChannel)
+	close(stopChannel)
 	close(currencyChannel)
 
 }

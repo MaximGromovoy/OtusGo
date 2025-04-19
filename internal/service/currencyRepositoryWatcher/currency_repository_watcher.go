@@ -37,8 +37,3 @@ func StartWatching(repository *currencyRepository.CurrencyRepository, stopChanne
 		}
 	}()
 }
-
-func StopWatching(stopChannel chan struct{}) {
-	fmt.Println("Stopping watcher goroutine...")
-	close(stopChannel)
-}
