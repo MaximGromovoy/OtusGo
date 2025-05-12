@@ -7,6 +7,7 @@ import (
 	"OtusGo/internal/service/currencyRepositoryWatcher"
 	"OtusGo/internal/service/randomCurrency"
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,7 +20,12 @@ func main() {
 
 	go startSignalHandler(ctx, cancel)
 
-	repository := currencyRepository.NewCurrencyRepository()
+	storageBaseDir := "." // Текущая директория
+	repository, err := currencyRepository.NewCurrencyRepository(storageBaseDir)
+	if err != nil {
+		panic(fmt.Sprintf("Не удалось инициализировать репозиторий валют: %v", err))
+	}
+
 	currencyChannel := make(chan currency.CurrencyInterface)
 
 	go currencyRepositoryWatcher.StartWatching(repository, ctx)
@@ -32,7 +38,7 @@ func main() {
 
 	time.Sleep(1 * time.Second)
 
-	println("Application gracefully stopped.")
+	println("Приложение завершено успешно..")
 }
 
 func startSignalHandler(ctx context.Context, cancel context.CancelFunc) {
@@ -42,7 +48,7 @@ func startSignalHandler(ctx context.Context, cancel context.CancelFunc) {
 	go func() {
 		select {
 		case sig := <-signalChannel:
-			println("Received signal:", sig)
+			println("Получен сигнал:", sig)
 			cancel()
 		case <-ctx.Done():
 		}
