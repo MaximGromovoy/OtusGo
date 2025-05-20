@@ -10,12 +10,19 @@ import (
 
 func StartWatching(repository *currencyRepository.CurrencyRepository, ctx context.Context) {
 	fmt.Println("Starting watcher goroutine...")
+
+	// Инициализируем карту для хранения текущего количества записей по каждой валюте
+	currencyCountMap := make(map[string]int)
+
+	// Заполняем начальными значениями из репозитория
+	for _, curName := range currency.ExistCurrencies {
+		data := repository.GetAll(curName)
+		currencyCountMap[curName] = len(data)
+		fmt.Printf("Initial count for %s: %d records\n", curName, len(data))
+	}
+
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
-	currencyCountMap := make(map[string]int)
-	for _, cur := range currency.ExistCurrencies {
-		currencyCountMap[cur] = 0
-	}
 	for {
 		select {
 		case <-ctx.Done():
