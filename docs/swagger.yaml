@@ -1,0 +1,332 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: API для управления различными типами валют
+  title: API Валют
+  version: "1.0"
+paths:
+  /currencies:
+    get:
+      description: Возвращает список всех валют или валют определенного типа
+      parameters:
+      - description: Тип валюты (опционально)
+        enum:
+        - Dollar
+        - Euro
+        - Ruble
+        - Lira
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список валют
+          schema:
+            properties:
+              data:
+                type: object
+              status:
+                type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            type: string
+        "401":
+          description: Неавторизован
+          schema:
+            type: string
+      security:
+      - JWT: []
+      summary: Получение списка валют
+      tags:
+      - валюта
+  /currency:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую валюту указанного типа
+      parameters:
+      - description: Тип валюты
+        enum:
+        - Dollar
+        - Euro
+        - Ruble
+        - Lira
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Данные валюты
+        in: body
+        name: currency
+        required: true
+        schema:
+          properties:
+            value:
+              type: number
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Валюта успешно добавлена
+          schema:
+            properties:
+              data:
+                properties:
+                  code:
+                    type: string
+                  id:
+                    type: integer
+                  type:
+                    type: string
+                  value:
+                    type: number
+                type: object
+              status:
+                type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            type: string
+        "401":
+          description: Неавторизован
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      security:
+      - JWT: []
+      summary: Добавление валюты
+      tags:
+      - валюта
+  /currency/{type}/{id}:
+    delete:
+      description: Удаляет валюту указанного типа по ID
+      parameters:
+      - description: Тип валюты
+        enum:
+        - Dollar
+        - Euro
+        - Ruble
+        - Lira
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: ID валюты
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Валюта успешно удалена
+          schema:
+            properties:
+              message:
+                type: string
+              status:
+                type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            type: string
+        "401":
+          description: Неавторизован
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      security:
+      - JWT: []
+      summary: Удаление валюты
+      tags:
+      - валюта
+    get:
+      description: Получает информацию о конкретной валюте по типу и ID
+      parameters:
+      - description: Тип валюты
+        enum:
+        - Dollar
+        - Euro
+        - Ruble
+        - Lira
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: ID валюты
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о валюте
+          schema:
+            properties:
+              data:
+                properties:
+                  code:
+                    type: string
+                  id:
+                    type: integer
+                  type:
+                    type: string
+                  value:
+                    type: number
+                type: object
+              status:
+                type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            type: string
+        "401":
+          description: Неавторизован
+          schema:
+            type: string
+        "404":
+          description: Не найдено
+          schema:
+            type: string
+      security:
+      - JWT: []
+      summary: Получение валюты
+      tags:
+      - валюта
+    put:
+      consumes:
+      - application/json
+      description: Обновляет значение валюты указанного типа по ID
+      parameters:
+      - description: Тип валюты
+        enum:
+        - Dollar
+        - Euro
+        - Ruble
+        - Lira
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: ID валюты
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новое значение валюты
+        in: body
+        name: currency
+        required: true
+        schema:
+          properties:
+            value:
+              type: number
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Валюта успешно обновлена
+          schema:
+            properties:
+              data:
+                properties:
+                  code:
+                    type: string
+                  id:
+                    type: integer
+                  type:
+                    type: string
+                  value:
+                    type: number
+                type: object
+              status:
+                type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            type: string
+        "401":
+          description: Неавторизован
+          schema:
+            type: string
+        "404":
+          description: Не найдено
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      security:
+      - JWT: []
+      summary: Обновление валюты
+      tags:
+      - валюта
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентифицирует пользователя и выдает JWT токен
+      parameters:
+      - description: Учетные данные пользователя
+        in: body
+        name: credentials
+        required: true
+        schema:
+          properties:
+            password:
+              type: string
+            username:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная аутентификация
+          schema:
+            properties:
+              status:
+                type: string
+              token:
+                type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            type: string
+        "401":
+          description: Неавторизован
+          schema:
+            type: string
+      summary: Вход в систему
+      tags:
+      - авторизация
+schemes:
+- http
+securityDefinitions:
+  JWT:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

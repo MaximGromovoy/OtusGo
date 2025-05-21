@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "OtusGo/docs" // Важно импортировать сгенерированную документацию!
 	"OtusGo/internal/model/currency"
 	"OtusGo/internal/repository/currencyRepository"
 	"OtusGo/internal/server"
@@ -22,23 +23,26 @@ func main() {
 
 	go startSignalHandler(ctx, cancel)
 
-	storageBaseDir := "."
+	storageBaseDir := "." // Текущая директория
 	repository, err := currencyRepository.NewCurrencyRepository(storageBaseDir)
 	if err != nil {
-		panic(fmt.Sprintf("Repository init error: %v", err))
+		panic(fmt.Sprintf("Не удалось инициализировать репозиторий валют: %v", err))
 	}
 
+	// Инициализация и запуск HTTP-сервера
 	httpServer := server.NewCurrencyServer(repository)
-	serverPort := "8080"
+	serverPort := "8080" // Можно получить из конфига или флагов
 
 	go func() {
-		log.Printf("Run server at %s", serverPort)
+		log.Printf("Запуск HTTP-сервера на порту %s", serverPort)
+		log.Printf("Swagger UI доступен по адресу: http://localhost:%s/swagger/", serverPort)
 		if err := httpServer.Start(serverPort); err != nil {
-			log.Printf("Run server error: %v", err)
-			cancel()
+			log.Printf("Ошибка запуска HTTP-сервера: %v", err)
+			cancel() // Отменяем контекст, чтобы завершить все горутины
 		}
 	}()
 
+	// Запуск остальных сервисов
 	currencyChannel := make(chan currency.CurrencyInterface)
 
 	go currencyRepositoryWatcher.StartWatching(repository, ctx)
@@ -51,7 +55,7 @@ func main() {
 
 	time.Sleep(1 * time.Second)
 
-	println("App stopped succesful..")
+	println("Приложение завершено успешно..")
 }
 
 func startSignalHandler(ctx context.Context, cancel context.CancelFunc) {
@@ -61,7 +65,7 @@ func startSignalHandler(ctx context.Context, cancel context.CancelFunc) {
 	go func() {
 		select {
 		case sig := <-signalChannel:
-			println("Signal:", sig)
+			println("Получен сигнал:", sig)
 			cancel()
 		case <-ctx.Done():
 		}
