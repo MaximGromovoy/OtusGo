@@ -40,20 +40,17 @@ func (s *CurrencyServer) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Создаем JWT токен
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": credentials.Username,
 		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	// Подписываем токен нашим секретом
 	tokenString, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
 	}
 
-	// Отправляем токен клиенту
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "success",
