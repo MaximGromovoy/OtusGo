@@ -17,7 +17,7 @@ import (
 // @Param currency body object{value=number} true "Данные валюты"
 // @Success 201 {object} object{status=string,data=object{id=integer,type=string,code=string,value=number}} "Валюта успешно добавлена"
 // @Failure 400 {string} string "Некорректный запрос"
-// @Failure 401 {string} string "Неавторизован"
+// @Failure 401 {string} string "Не авторизован"
 // @Failure 500 {string} string "Внутренняя ошибка сервера"
 // @Security JWT
 // @Router /currency [post]
@@ -89,7 +89,7 @@ func (s *CurrencyServer) addCurrency(w http.ResponseWriter, r *http.Request) {
 // @Param type query string false "Тип валюты (опционально)" Enums(Dollar, Euro, Ruble, Lira)
 // @Success 200 {object} object{status=string,data=object} "Список валют"
 // @Failure 400 {string} string "Некорректный запрос"
-// @Failure 401 {string} string "Неавторизован"
+// @Failure 401 {string} string "Не авторизован"
 // @Security JWT
 // @Router /currencies [get]
 func (s *CurrencyServer) handleCurrencies(w http.ResponseWriter, r *http.Request) {

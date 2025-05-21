@@ -36,7 +36,7 @@ func (s *CurrencyServer) handleCurrencyWithTypeAndID(w http.ResponseWriter, r *h
 // @Param id path integer true "ID валюты"
 // @Success 200 {object} object{status=string,data=object{id=integer,type=string,code=string,value=number}} "Информация о валюте"
 // @Failure 400 {string} string "Некорректный запрос"
-// @Failure 401 {string} string "Неавторизован"
+// @Failure 401 {string} string "Не авторизован"
 // @Failure 404 {string} string "Не найдено"
 // @Security JWT
 // @Router /currency/{type}/{id} [get]
@@ -72,7 +72,7 @@ func (s *CurrencyServer) getCurrency(w http.ResponseWriter, currencyType string,
 // @Param currency body object{value=number} true "Новое значение валюты"
 // @Success 200 {object} object{status=string,data=object{id=integer,type=string,code=string,value=number}} "Валюта успешно обновлена"
 // @Failure 400 {string} string "Некорректный запрос"
-// @Failure 401 {string} string "Неавторизован"
+// @Failure 401 {string} string "Не авторизован"
 // @Failure 404 {string} string "Не найдено"
 // @Failure 500 {string} string "Внутренняя ошибка сервера"
 // @Security JWT
@@ -138,7 +138,7 @@ func (s *CurrencyServer) updateCurrency(w http.ResponseWriter, r *http.Request, 
 // @Param id path integer true "ID валюты"
 // @Success 200 {object} object{status=string,message=string} "Валюта успешно удалена"
 // @Failure 400 {string} string "Некорректный запрос"
-// @Failure 401 {string} string "Неавторизован"
+// @Failure 401 {string} string "Не авторизован"
 // @Failure 500 {string} string "Внутренняя ошибка сервера"
 // @Security JWT
 // @Router /currency/{type}/{id} [delete]

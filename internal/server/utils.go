@@ -1,4 +1,3 @@
-// filepath: d:\OTUS\GO\Rep\OtusGo\internal\server\utils.go
 package server
 
 import (
@@ -22,17 +21,17 @@ func (s *CurrencyServer) parseRequestedCurrencyTypeAndID(path string) (string, i
 	}
 
 	if !currency.IsCurrencySupported(currencyType) {
-		return "", 0, fmt.Errorf("Not supported currency: %s", currencyType)
+		return "", 0, fmt.Errorf("not supported currency: %s", currencyType)
 	}
 
 	idStr := parts[3]
 	if idStr == "" {
-		return currencyType, 0, errors.New("Id must be specified")
+		return currencyType, 0, errors.New("id must be specified")
 	}
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		return currencyType, 0, fmt.Errorf("Incorrect format: %w", err)
+		return currencyType, 0, fmt.Errorf("incorrect format: %w", err)
 	}
 
 	return currencyType, id, nil

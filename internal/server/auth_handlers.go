@@ -17,7 +17,7 @@ import (
 // @Param credentials body object{username=string,password=string} true "Учетные данные пользователя"
 // @Success 200 {object} object{status=string,token=string} "Успешная аутентификация"
 // @Failure 400 {string} string "Некорректный запрос"
-// @Failure 401 {string} string "Неавторизован"
+// @Failure 401 {string} string "Не авторизован"
 // @Router /login [post]
 func (s *CurrencyServer) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
