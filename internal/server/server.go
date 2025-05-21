@@ -12,7 +12,6 @@ package server
 
 import (
 	"OtusGo/internal/repository/currencyRepository"
-	"log"
 	"net/http"
 
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -28,7 +27,7 @@ type CurrencyServer struct {
 func NewCurrencyServer(repo *currencyRepository.CurrencyRepository) *CurrencyServer {
 	return &CurrencyServer{
 		repo:      repo,
-		jwtSecret: "your-secret-key", // В реальном приложении следует загружать из конфига или переменных окружения
+		jwtSecret: "secret-key",
 	}
 }
 
@@ -44,10 +43,8 @@ func (s *CurrencyServer) Start(port string) error {
 
 	// Добавление Swagger UI
 	mux.Handle("/swagger/", httpSwagger.Handler(
-		httpSwagger.URL("/swagger/doc.json"), // URL указывает на JSON с API спецификацией
+		httpSwagger.URL("/swagger/doc.json"),
 	))
 
-	log.Printf("Запуск сервера на порту %s", port)
-	log.Printf("Swagger UI доступен по адресу: http://localhost:%s/swagger/", port)
 	return http.ListenAndServe(":"+port, mux)
 }

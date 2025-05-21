@@ -9,7 +9,6 @@ import (
 
 // handleCurrencyWithTypeAndID обрабатывает GET, PUT, DELETE запросы для конкретной валюты по типу и ID
 func (s *CurrencyServer) handleCurrencyWithTypeAndID(w http.ResponseWriter, r *http.Request) {
-	// Извлекаем тип и ID из URL
 	currencyType, id, err := s.parseRequestedCurrencyTypeAndID(r.URL.Path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -24,7 +23,7 @@ func (s *CurrencyServer) handleCurrencyWithTypeAndID(w http.ResponseWriter, r *h
 	case http.MethodDelete:
 		s.deleteCurrency(w, currencyType, id)
 	default:
-		http.Error(w, "Метод не разрешен", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
@@ -47,7 +46,7 @@ func (s *CurrencyServer) getCurrency(w http.ResponseWriter, currencyType string,
 		if curr.GetID() == id {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"status": "успешно",
+				"status": "success",
 				"data": map[string]interface{}{
 					"id":    curr.GetID(),
 					"type":  curr.GetName(),
@@ -59,7 +58,7 @@ func (s *CurrencyServer) getCurrency(w http.ResponseWriter, currencyType string,
 		}
 	}
 
-	http.Error(w, fmt.Sprintf("Валюта с типом %s и ID %d не найдена", currencyType, id), http.StatusNotFound)
+	http.Error(w, fmt.Sprintf("Currency with type %s and ID %d not found", currencyType, id), http.StatusNotFound)
 }
 
 // updateCurrency обновляет валюту по типу и ID
@@ -85,7 +84,7 @@ func (s *CurrencyServer) updateCurrency(w http.ResponseWriter, r *http.Request, 
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-		http.Error(w, "Некорректное тело запроса, ожидается {\"value\": 123.45}", http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -101,26 +100,26 @@ func (s *CurrencyServer) updateCurrency(w http.ResponseWriter, r *http.Request, 
 	}
 
 	if currToUpdate == nil {
-		http.Error(w, fmt.Sprintf("Валюта с типом %s и ID %d не найдена", currencyType, id), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Currency with type %s and ID %d not found", currencyType, id), http.StatusNotFound)
 		return
 	}
 
 	// Создаем обновленную валюту
 	updatedCurrency := currency.NewCurrencyWithID(currencyType, requestData.Value, id)
 	if updatedCurrency == nil {
-		http.Error(w, "Не удалось создать обновленную валюту", http.StatusInternalServerError)
+		http.Error(w, "Failed to create updated currency", http.StatusInternalServerError)
 		return
 	}
 
 	// Обновляем в репозитории
 	if err := s.repo.Update(currencyType, id, updatedCurrency); err != nil {
-		http.Error(w, fmt.Sprintf("Не удалось обновить валюту: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to update currency: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status": "успешно",
+		"status": "success",
 		"data": map[string]interface{}{
 			"id":    updatedCurrency.GetID(),
 			"type":  updatedCurrency.GetName(),
@@ -146,13 +145,13 @@ func (s *CurrencyServer) updateCurrency(w http.ResponseWriter, r *http.Request, 
 func (s *CurrencyServer) deleteCurrency(w http.ResponseWriter, currencyType string, id int) {
 	// Удаляем из репозитория
 	if err := s.repo.DeleteByTypeAndID(currencyType, id); err != nil {
-		http.Error(w, fmt.Sprintf("Не удалось удалить валюту: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to delete currency: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "успешно",
-		"message": fmt.Sprintf("Валюта с типом %s и ID %d успешно удалена", currencyType, id),
+		"status":  "success",
+		"message": fmt.Sprintf("Currency with type %s and ID %d successfully deleted", currencyType, id),
 	})
 }

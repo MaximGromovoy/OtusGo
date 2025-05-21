@@ -21,7 +21,7 @@ import (
 // @Router /login [post]
 func (s *CurrencyServer) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Метод не разрешен", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -31,34 +31,32 @@ func (s *CurrencyServer) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
-		http.Error(w, "Некорректное тело запроса", http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// В реальном приложении здесь была бы проверка учетных данных
-	// Для демонстрации используем фиксированные значения
 	if credentials.Username != "admin" || credentials.Password != "password" {
-		http.Error(w, "Неверные учетные данные", http.StatusUnauthorized)
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
 	// Создаем JWT токен
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": credentials.Username,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(), // Токен действителен 24 часа
+		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 	})
 
 	// Подписываем токен нашим секретом
 	tokenString, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {
-		http.Error(w, "Не удалось сгенерировать токен", http.StatusInternalServerError)
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
 	}
 
 	// Отправляем токен клиенту
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status": "успешно",
+		"status": "success",
 		"token":  tokenString,
 	})
 }

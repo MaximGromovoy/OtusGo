@@ -1,10 +1,10 @@
 package server
 
 import (
-    "OtusGo/internal/model/currency"
-    "encoding/json"
-    "fmt"
-    "net/http"
+	"OtusGo/internal/model/currency"
+	"encoding/json"
+	"fmt"
+	"net/http"
 )
 
 // handleCurrency обрабатывает POST запросы для добавления новой валюты
@@ -22,63 +22,63 @@ import (
 // @Security JWT
 // @Router /currency [post]
 func (s *CurrencyServer) handleCurrency(w http.ResponseWriter, r *http.Request) {
-    if r.Method == http.MethodPost {
-        s.addCurrency(w, r)
-        return
-    }
+	if r.Method == http.MethodPost {
+		s.addCurrency(w, r)
+		return
+	}
 
-    http.Error(w, "Метод не разрешен", http.StatusMethodNotAllowed)
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
 
 // addCurrency добавляет новую валюту
 func (s *CurrencyServer) addCurrency(w http.ResponseWriter, r *http.Request) {
-    // Получаем тип валюты из параметра запроса
-    currencyType := r.URL.Query().Get("type")
-    if currencyType == "" {
-        http.Error(w, "Тип валюты обязателен как параметр запроса", http.StatusBadRequest)
-        return
-    }
+	// Получаем тип валюты из параметра запроса
+	currencyType := r.URL.Query().Get("type")
+	if currencyType == "" {
+		http.Error(w, "Currency type is required", http.StatusBadRequest)
+		return
+	}
 
-    // Проверяем поддерживается ли тип валюты
-    if !currency.IsCurrencySupported(currencyType) {
-        http.Error(w, fmt.Sprintf("Неподдерживаемый тип валюты: %s", currencyType), http.StatusBadRequest)
-        return
-    }
+	// Проверяем поддерживается ли тип валюты
+	if !currency.IsCurrencySupported(currencyType) {
+		http.Error(w, fmt.Sprintf("Unsupported currency type: %s", currencyType), http.StatusBadRequest)
+		return
+	}
 
-    // Получаем значение валюты из тела запроса
-    var requestData struct {
-        Value float64 `json:"value"`
-    }
+	// Получаем значение валюты из тела запроса
+	var requestData struct {
+		Value float64 `json:"value"`
+	}
 
-    if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-        http.Error(w, "Некорректное тело запроса, ожидается {\"value\": 123.45}", http.StatusBadRequest)
-        return
-    }
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
 
-    // Создаем новую валюту
-    newCurrency := currency.NewCurrency(currencyType, requestData.Value)
-    if newCurrency == nil {
-        http.Error(w, "Не удалось создать валюту", http.StatusInternalServerError)
-        return
-    }
+	// Создаем новую валюту
+	newCurrency := currency.NewCurrency(currencyType, requestData.Value)
+	if newCurrency == nil {
+		http.Error(w, "Failed to create currency", http.StatusInternalServerError)
+		return
+	}
 
-    // Добавляем в репозиторий
-    if err := s.repo.Add(newCurrency); err != nil {
-        http.Error(w, fmt.Sprintf("Не удалось добавить валюту: %v", err), http.StatusInternalServerError)
-        return
-    }
+	// Добавляем в репозиторий
+	if err := s.repo.Add(newCurrency); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to add currency: %v", err), http.StatusInternalServerError)
+		return
+	}
 
-    w.WriteHeader(http.StatusCreated)
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]interface{}{
-        "status": "успешно",
-        "data": map[string]interface{}{
-            "id":    newCurrency.GetID(),
-            "type":  newCurrency.GetName(),
-            "code":  newCurrency.GetCode(),
-            "value": newCurrency.GetValue(),
-        },
-    })
+	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "success",
+		"data": map[string]interface{}{
+			"id":    newCurrency.GetID(),
+			"type":  newCurrency.GetName(),
+			"code":  newCurrency.GetCode(),
+			"value": newCurrency.GetValue(),
+		},
+	})
 }
 
 // handleCurrencies обрабатывает GET запросы для получения всех валют
@@ -93,58 +93,58 @@ func (s *CurrencyServer) addCurrency(w http.ResponseWriter, r *http.Request) {
 // @Security JWT
 // @Router /currencies [get]
 func (s *CurrencyServer) handleCurrencies(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodGet {
-        http.Error(w, "Метод не разрешен", http.StatusMethodNotAllowed)
-        return
-    }
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-    // Получаем тип валюты из параметра запроса (необязательный)
-    requestedType := r.URL.Query().Get("type")
+	// Получаем тип валюты из параметра запроса (необязательный)
+	requestedType := r.URL.Query().Get("type")
 
-    result := make(map[string][]map[string]interface{})
+	result := make(map[string][]map[string]interface{})
 
-    // Если тип указан и поддерживается, возвращаем только его
-    if requestedType != "" {
-        if !currency.IsCurrencySupported(requestedType) {
-            http.Error(w, fmt.Sprintf("Неподдерживаемый тип валюты: %s", requestedType), http.StatusBadRequest)
-            return
-        }
+	// Если тип указан и поддерживается, возвращаем только его
+	if requestedType != "" {
+		if !currency.IsCurrencySupported(requestedType) {
+			http.Error(w, fmt.Sprintf("Unsupported currency type: %s", requestedType), http.StatusBadRequest)
+			return
+		}
 
-        currencies := s.repo.GetAll(requestedType)
-        currenciesData := make([]map[string]interface{}, 0, len(currencies))
+		currencies := s.repo.GetAll(requestedType)
+		currenciesData := make([]map[string]interface{}, 0, len(currencies))
 
-        for _, curr := range currencies {
-            currenciesData = append(currenciesData, map[string]interface{}{
-                "id":    curr.GetID(),
-                "type":  curr.GetName(),
-                "code":  curr.GetCode(),
-                "value": curr.GetValue(),
-            })
-        }
+		for _, curr := range currencies {
+			currenciesData = append(currenciesData, map[string]interface{}{
+				"id":    curr.GetID(),
+				"type":  curr.GetName(),
+				"code":  curr.GetCode(),
+				"value": curr.GetValue(),
+			})
+		}
 
-        result[requestedType] = currenciesData
-    } else {
-        // Иначе возвращаем все поддерживаемые типы
-        for _, currType := range currency.SupportedCurrencies {
-            currencies := s.repo.GetAll(currType)
-            currenciesData := make([]map[string]interface{}, 0, len(currencies))
+		result[requestedType] = currenciesData
+	} else {
+		// Иначе возвращаем все поддерживаемые типы
+		for _, currType := range currency.SupportedCurrencies {
+			currencies := s.repo.GetAll(currType)
+			currenciesData := make([]map[string]interface{}, 0, len(currencies))
 
-            for _, curr := range currencies {
-                currenciesData = append(currenciesData, map[string]interface{}{
-                    "id":    curr.GetID(),
-                    "type":  curr.GetName(),
-                    "code":  curr.GetCode(),
-                    "value": curr.GetValue(),
-                })
-            }
+			for _, curr := range currencies {
+				currenciesData = append(currenciesData, map[string]interface{}{
+					"id":    curr.GetID(),
+					"type":  curr.GetName(),
+					"code":  curr.GetCode(),
+					"value": curr.GetValue(),
+				})
+			}
 
-            result[currType] = currenciesData
-        }
-    }
+			result[currType] = currenciesData
+		}
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]interface{}{
-        "status": "успешно",
-        "data":   result,
-    })
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "success",
+		"data":   result,
+	})
 }
