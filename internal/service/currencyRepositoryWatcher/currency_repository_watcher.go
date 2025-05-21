@@ -15,7 +15,7 @@ func StartWatching(repository *currencyRepository.CurrencyRepository, ctx contex
 	currencyCountMap := make(map[string]int)
 
 	// Заполняем начальными значениями из репозитория
-	for _, curName := range currency.ExistCurrencies {
+	for _, curName := range currency.SupportedCurrencies {
 		data := repository.GetAll(curName)
 		currencyCountMap[curName] = len(data)
 		fmt.Printf("Initial count for %s: %d records\n", curName, len(data))

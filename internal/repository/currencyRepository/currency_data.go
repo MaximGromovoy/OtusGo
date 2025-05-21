@@ -2,58 +2,115 @@ package currencyRepository
 
 import (
 	"OtusGo/internal/model/currency"
-	"encoding/csv"
-	"fmt"
-	"os"
+	"errors"
 	"sync"
 )
 
-// currencyData представляет собой потокобезопасное хранилище для определенного типа валюты.
-// Оно управляет данными в памяти и обеспечивает их сохранение в CSV-файл.
-type currencyData[T currency.CurrencyInterface] struct {
-	data     []T
-	mu       sync.Mutex
-	filePath string
+// CurrencyCollection представляет интерфейс для работы с коллекцией валют
+type CurrencyCollection interface {
+	Add(item currency.CurrencyInterface) error
+	GetAll() []currency.CurrencyInterface
+	Update(id int, item currency.CurrencyInterface) error
+	Delete(id int) error
+	GetByID(id int) (currency.CurrencyInterface, bool)
 }
 
-// Add добавляет новый элемент валюты в хранилище.
-// Элемент добавляется как в срез в памяти, так и в CSV-файл.
-func (cd *currencyData[T]) Add(item T) error {
-	cd.mu.Lock()
-	defer cd.mu.Unlock()
-
-	cd.data = append(cd.data, item)
-
-	file, err := os.OpenFile(cd.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("не удалось открыть файл %s для дозаписи: %w", cd.filePath, err)
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	record := []string{item.GetName(), item.GetCode(), fmt.Sprintf("%.2f", item.GetValue())}
-	if err := writer.Write(record); err != nil {
-		writer.Flush()
-		return fmt.Errorf("не удалось записать запись в %s: %w", cd.filePath, err)
-	}
-
-	if err := writer.Error(); err != nil {
-	}
-
-	writer.Flush()
-	if err := writer.Error(); err != nil {
-		return fmt.Errorf("не удалось очистить буфер для %s: %w", cd.filePath, err)
-	}
-
-	return nil
+// currencyData представляет собой хранилище данных для конкретного типа валюты.
+type currencyData struct {
+	items    []currency.CurrencyInterface // срез элементов валюты
+	filePath string                       // путь к CSV-файлу для сохранения данных
+	mu       sync.RWMutex                 // привный мьютекс для синхронизации доступа к данным
 }
 
-// GetAll возвращает копию всех элементов валюты, хранящихся в данный момент.
-// Возвращает новый срез, чтобы избежать модификации внутренних данных извне.
-func (cd *currencyData[T]) GetAll() []T {
-	cd.mu.Lock()
-	defer cd.mu.Unlock()
-	dataCopy := make([]T, len(cd.data))
-	copy(dataCopy, cd.data)
-	return dataCopy
+// NewCurrencyData создает новую коллекцию валют
+func NewCurrencyData(filePath string, initialItems []currency.CurrencyInterface) *currencyData {
+	return &currencyData{
+		items:    initialItems,
+		filePath: filePath,
+	}
+}
+
+// Add добавляет новый элемент в коллекцию и сохраняет его в файл
+func (c *currencyData) Add(item currency.CurrencyInterface) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Добавляем новый элемент в срез
+	c.items = append(c.items, item)
+
+	// Сохраняем данные в файл
+	return appendCurrencyToFile(c.filePath, item)
+}
+
+// GetAll возвращает копию всех элементов из хранилища.
+func (c *currencyData) GetAll() []currency.CurrencyInterface {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Создаем новый срез того же размера
+	result := make([]currency.CurrencyInterface, len(c.items))
+
+	// Копируем элементы
+	copy(result, c.items)
+
+	return result
+}
+
+// Update обновляет элемент по его ID
+func (c *currencyData) Update(id int, item currency.CurrencyInterface) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	found := false
+	for i, curr := range c.items {
+		if curr.GetID() == id {
+			c.items[i] = item
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return errors.New("currency not found")
+	}
+
+	// Перезаписываем все в файл
+	return rewriteCurrenciesInFile(c.filePath, c.items)
+}
+
+// Delete удаляет элемент по его ID
+func (c *currencyData) Delete(id int) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for i, curr := range c.items {
+		if curr.GetID() == id {
+			// Удаляем элемент из среза
+			c.items = append(c.items[:i], c.items[i+1:]...)
+
+			// Перезаписываем все в файл
+			return rewriteCurrenciesInFile(c.filePath, c.items)
+		}
+	}
+
+	return errors.New("currency not found")
+}
+
+// GetByID возвращает элемент по его ID
+func (c *currencyData) GetByID(id int) (currency.CurrencyInterface, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	for _, curr := range c.items {
+		if curr.GetID() == id {
+			return curr, true
+		}
+	}
+
+	return nil, false
+}
+
+// GetFilePath возвращает путь к файлу хранилища
+func (c *currencyData) GetFilePath() string {
+	return c.filePath
 }

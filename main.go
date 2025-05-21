@@ -3,11 +3,13 @@ package main
 import (
 	"OtusGo/internal/model/currency"
 	"OtusGo/internal/repository/currencyRepository"
+	"OtusGo/internal/server"
 	"OtusGo/internal/service/currencyDistributor"
 	"OtusGo/internal/service/currencyRepositoryWatcher"
 	"OtusGo/internal/service/randomCurrency"
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,11 +22,22 @@ func main() {
 
 	go startSignalHandler(ctx, cancel)
 
-	storageBaseDir := "." // Текущая директория
+	storageBaseDir := "."
 	repository, err := currencyRepository.NewCurrencyRepository(storageBaseDir)
 	if err != nil {
-		panic(fmt.Sprintf("Не удалось инициализировать репозиторий валют: %v", err))
+		panic(fmt.Sprintf("Repository init error: %v", err))
 	}
+
+	httpServer := server.NewCurrencyServer(repository)
+	serverPort := "8080"
+
+	go func() {
+		log.Printf("Run server at %s", serverPort)
+		if err := httpServer.Start(serverPort); err != nil {
+			log.Printf("Run server error: %v", err)
+			cancel()
+		}
+	}()
 
 	currencyChannel := make(chan currency.CurrencyInterface)
 
@@ -38,7 +51,7 @@ func main() {
 
 	time.Sleep(1 * time.Second)
 
-	println("Приложение завершено успешно..")
+	println("App stopped succesful..")
 }
 
 func startSignalHandler(ctx context.Context, cancel context.CancelFunc) {
@@ -48,7 +61,7 @@ func startSignalHandler(ctx context.Context, cancel context.CancelFunc) {
 	go func() {
 		select {
 		case sig := <-signalChannel:
-			println("Получен сигнал:", sig)
+			println("Signal:", sig)
 			cancel()
 		case <-ctx.Done():
 		}
