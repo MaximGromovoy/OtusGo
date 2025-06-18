@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package currency.v1;
+
+option go_package = "OtusGo/internal/grpc/pb/currency/v1;currencyv1";
+
+// Сообщение для представления валюты
+message Currency {
+    int32 id = 1;
+    string name = 2;
+    string code = 3;
+    double value = 4;
+}
+
+// Запросы для создания валюты
+message CreateCurrencyRequest {
+    string currency_type = 1;
+    double value = 2;
+}
+
+message CreateCurrencyResponse {
+    Currency currency = 1;
+    string message = 2;
+}
+
+// Запросы для получения валюты по ID
+message GetCurrencyRequest {
+    string currency_type = 1;
+    int32 id = 2;
+}
+
+message GetCurrencyResponse {
+    Currency currency = 1;
+}
+
+// Запросы для получения всех валют типа
+message GetCurrenciesRequest {
+    string currency_type = 1;
+}
+
+message GetCurrenciesResponse {
+    repeated Currency currencies = 1;
+}
+
+// Запросы для обновления валюты
+message UpdateCurrencyRequest {
+    string currency_type = 1;
+    int32 id = 2;
+    double value = 3;
+}
+
+message UpdateCurrencyResponse {
+    Currency currency = 1;
+    string message = 2;
+}
+
+// Запросы для удаления валюты
+message DeleteCurrencyRequest {
+    string currency_type = 1;
+    int32 id = 2;
+}
+
+message DeleteCurrencyResponse {
+    string message = 1;
+}
+
+// Сервис для работы с валютами
+service CurrencyService {
+    rpc CreateCurrency(CreateCurrencyRequest) returns (CreateCurrencyResponse);
+    rpc GetCurrency(GetCurrencyRequest) returns (GetCurrencyResponse);
+    rpc GetCurrencies(GetCurrenciesRequest) returns (GetCurrenciesResponse);
+    rpc UpdateCurrency(UpdateCurrencyRequest) returns (UpdateCurrencyResponse);
+    rpc DeleteCurrency(DeleteCurrencyRequest) returns (DeleteCurrencyResponse);
+}
