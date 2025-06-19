@@ -1,20 +1,16 @@
 package main
 
 import (
-	"OtusGo/internal/model/currency"
-	"OtusGo/internal/repository/currencyRepository"
-	"OtusGo/internal/server"
-	"OtusGo/internal/service/currencyDistributor"
-	"OtusGo/internal/service/currencyRepositoryWatcher"
-	"OtusGo/internal/service/randomCurrency"
+	transactionRepository "OtusGo/internal/repository/transactionsRepository"
+	transactionService "OtusGo/internal/service/transactionService"
 	"context"
-	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 )
+
+var storageBaseDir = "."
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -22,33 +18,17 @@ func main() {
 
 	go startSignalHandler(ctx, cancel)
 
-	storageBaseDir := "."
-	repository, err := currencyRepository.NewCurrencyRepository(storageBaseDir)
+	transactionRepository, err := transactionRepository.NewTransactionRepository(storageBaseDir)
+
 	if err != nil {
-		panic(fmt.Sprintf("Repository init error: %v", err))
+
 	}
 
-	httpServer := server.NewCurrencyServer(repository)
-	serverPort := "8080"
+	transactionService := transactionService.NewTransactionService(transactionRepository)
 
-	go func() {
-		log.Printf("Run server at %s", serverPort)
-		if err := httpServer.Start(serverPort); err != nil {
-			log.Printf("Run server error: %v", err)
-			cancel()
-		}
-	}()
-
-	currencyChannel := make(chan currency.CurrencyInterface)
-
-	go currencyRepositoryWatcher.StartWatching(repository, ctx)
-	go randomCurrency.StartRandomCurrencyGenerator(currencyChannel, ctx)
-	go currencyDistributor.StartDistributeCurrencyInRepository(currencyChannel, repository, ctx)
+	transactionService.Deposit(1, "USD", 100.0)
 
 	<-ctx.Done()
-
-	close(currencyChannel)
-
 	time.Sleep(1 * time.Second)
 
 	println("App stopped succesful..")

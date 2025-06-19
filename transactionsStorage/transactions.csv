@@ -1,0 +1,2 @@
+id,user_id,type,status,from_currency,to_currency,from_amount,to_amount,exchange_rate,commission,timestamp
+1,1,deposit,completed,USD,USD,100.000000,100.000000,1.000000,0.000000,2025-06-18T23:40:25+03:00
