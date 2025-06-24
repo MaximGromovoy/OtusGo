@@ -8,8 +8,6 @@ import (
 type TransactionType string
 
 const (
-	TransactionTypeDeposit  TransactionType = "deposit"  // Пополнение
-	TransactionTypeWithdraw TransactionType = "withdraw" // Снятие
 	TransactionTypeExchange TransactionType = "exchange" // Обмен валют
 )
 
