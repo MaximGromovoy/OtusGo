@@ -25,9 +25,11 @@ func TestExchangeService_ValidateExchangeRequest(t *testing.T) {
 	// Создаем моки
 	mockRepo := mocks.NewMockTransactionRepository()
 	mockCBR := mocks.NewMockCBRService()
+	mockExRateCache := mocks.NewMockExchangeRatesCache()
+	mockOperationsCache := mocks.NewMockOperationsLoggerCache()
 
 	// Создаем сервис с моками
-	exchangeSvc := NewExchangeService(mockRepo, mockCBR, commissionRate)
+	exchangeSvc := NewExchangeService(mockRepo, mockCBR, mockExRateCache, mockOperationsCache, commissionRate)
 
 	// Тест кейсы для валидации
 	testCases := []struct {
@@ -178,13 +180,15 @@ func TestExchangeService_ExchangeCurrency_WithMocks(t *testing.T) {
 	// Создаем моки
 	mockRepo := mocks.NewMockTransactionRepository()
 	mockCBR := mocks.NewMockCBRService()
+	mockExRateCache := mocks.NewMockExchangeRatesCache()
+	mockOperationsCache := mocks.NewMockOperationsLoggerCache()
 
 	ctx := context.Background()
 
 	mockCBR.GetCurrencyRates(ctx)
 
 	// Создаем сервис с моками
-	exchangeSvc := NewExchangeService(mockRepo, mockCBR, commissionRate)
+	exchangeSvc := NewExchangeService(mockRepo, mockCBR, mockExRateCache, mockOperationsCache, commissionRate)
 
 	// Тестируем обмен USD в RUB
 	req := &ExchangeRequest{
@@ -235,6 +239,8 @@ func TestExchangeService_ExchangeCurrency_ExpectRepositoryError(t *testing.T) {
 	// Создаем моки
 	mockRepo := mocks.NewMockTransactionRepository()
 	mockCBR := mocks.NewMockCBRService()
+	mockExRateCache := mocks.NewMockExchangeRatesCache()
+	mockOperationsCache := mocks.NewMockOperationsLoggerCache()
 
 	mockRepo.SetShouldAddFail(true) // Устанавливаем флаг для имитации ошибки при добавлении транзакции
 
@@ -243,7 +249,7 @@ func TestExchangeService_ExchangeCurrency_ExpectRepositoryError(t *testing.T) {
 	mockCBR.GetCurrencyRates(ctx)
 
 	// Создаем сервис с моками
-	exchangeSvc := NewExchangeService(mockRepo, mockCBR, commissionRate)
+	exchangeSvc := NewExchangeService(mockRepo, mockCBR, mockExRateCache, mockOperationsCache, commissionRate)
 
 	// Тестируем обмен USD в RUB
 	req := &ExchangeRequest{
@@ -277,6 +283,8 @@ func TestExchangeService_ExchangeCurrency_ExpectedCBRServiceError(t *testing.T) 
 	// Создаем моки
 	mockRepo := mocks.NewMockTransactionRepository()
 	mockCBR := mocks.NewMockCBRService()
+	mockExRateCache := mocks.NewMockExchangeRatesCache()
+	mockOperationsCache := mocks.NewMockOperationsLoggerCache()
 
 	mockCBR.SetShouldFail(true) // Устанавливаем флаг для имитации ошибки при получении курсов валют
 
@@ -285,7 +293,7 @@ func TestExchangeService_ExchangeCurrency_ExpectedCBRServiceError(t *testing.T) 
 	mockCBR.GetCurrencyRates(ctx)
 
 	// Создаем сервис с моками
-	exchangeSvc := NewExchangeService(mockRepo, mockCBR, commissionRate)
+	exchangeSvc := NewExchangeService(mockRepo, mockCBR, mockExRateCache, mockOperationsCache, commissionRate)
 
 	// Тестируем обмен USD в RUB
 	req := &ExchangeRequest{

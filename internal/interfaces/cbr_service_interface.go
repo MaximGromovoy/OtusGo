@@ -10,8 +10,3 @@ type CBRServiceInterface interface {
 	GetCurrencyRates(ctx context.Context) ([]currency.CurrencyInterface, error)
 	GetSupportedCurrencies() []string
 }
-
-// CurrencyServiceInterface - общий интерфейс для сервисов курсов валют
-type CurrencyServiceInterface interface {
-	CBRServiceInterface
-}

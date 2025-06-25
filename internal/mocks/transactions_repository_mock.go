@@ -117,6 +117,33 @@ func (m *MockTransactionRepository) GetAll() []*transaction.Transaction {
 	return result
 }
 
+func (m *MockTransactionRepository) Update(tx *transaction.Transaction) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if _, exists := m.transactions[tx.ID]; !exists {
+		return fmt.Errorf("transaction with ID %d not found", tx.ID)
+	}
+
+	txCopy := &transaction.Transaction{
+		ID:           tx.ID,
+		UserID:       tx.UserID,
+		Type:         tx.Type,
+		Status:       tx.Status,
+		FromCurrency: tx.FromCurrency,
+		ToCurrency:   tx.ToCurrency,
+		FromAmount:   tx.FromAmount,
+		ToAmount:     tx.ToAmount,
+		ExchangeRate: tx.ExchangeRate,
+		Commission:   tx.Commission,
+		Timestamp:    tx.Timestamp,
+	}
+
+	m.transactions[tx.ID] = txCopy
+
+	return nil
+}
+
 func (m *MockTransactionRepository) SetShouldAddFail(shouldAddFail bool) {
 	m.shouldAddFail = shouldAddFail
 }

@@ -7,4 +7,5 @@ type TransactionRepositoryInterface interface {
 	Add(tx *transaction.Transaction) error
 	Get(id int) (*transaction.Transaction, error)
 	GetAll() []*transaction.Transaction
+	Update(tx *transaction.Transaction) error
 }

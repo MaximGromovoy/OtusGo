@@ -1,10 +1,7 @@
 package exchangeService
 
 import (
-	"OtusGo/internal/interfaces"
 	"OtusGo/internal/transaction"
-	"sync"
-	"time"
 )
 
 // ExchangeRequest запрос на обмен валют
@@ -34,30 +31,4 @@ type ExchangeCalculation struct {
 	ExchangeRate             float64 // Курс обмена
 	Commission               float64 // Размер комиссии
 	CommissionRate           float64 // Процент комиссии
-}
-
-type ExchangeService struct {
-	transactionRepository interfaces.TransactionRepositoryInterface
-	cbrService            interfaces.CBRServiceInterface
-	commissionRate        float64
-
-	// Кэш курсов валют в памяти
-	ratesCache    map[string]float64
-	cacheExpiry   time.Time
-	cacheMutex    sync.RWMutex
-	cacheDuration time.Duration
-}
-
-func NewExchangeService(
-	transactionRepo interfaces.TransactionRepositoryInterface,
-	cbrSvc interfaces.CBRServiceInterface,
-	commissionRate float64,
-) *ExchangeService {
-	return &ExchangeService{
-		transactionRepository: transactionRepo,
-		cbrService:            cbrSvc,
-		commissionRate:        commissionRate,
-		ratesCache:            make(map[string]float64),
-		cacheDuration:         10 * time.Minute,
-	}
 }
