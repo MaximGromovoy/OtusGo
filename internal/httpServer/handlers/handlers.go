@@ -1,7 +1,9 @@
 package handlers
 
 import (
-	"OtusGo/internal/service/exchangeService"
+	"OtusGo/internal/interfaces"
+	cs "OtusGo/internal/service/currencyService"
+	csRequests "OtusGo/internal/service/currencyService/requests"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -9,12 +11,16 @@ import (
 )
 
 type ExchangeHandler struct {
-	exchangeService *exchangeService.ExchangeService
+	currencyService       *cs.CurrencyService
+	exchangeRatesProvider interfaces.ExchangeRatesProviderInterface
 }
 
-func NewExchangeHandler(exchangeService *exchangeService.ExchangeService) *ExchangeHandler {
+var commissionRate = 0.1 // Комиссия 10%
+
+func NewExchangeHandler(currencyService *cs.CurrencyService, exchangeRatesProvider interfaces.ExchangeRatesProviderInterface) *ExchangeHandler {
 	return &ExchangeHandler{
-		exchangeService: exchangeService,
+		currencyService:       currencyService,
+		exchangeRatesProvider: exchangeRatesProvider,
 	}
 }
 
@@ -29,7 +35,6 @@ type ExchangeRequestHTTP struct {
 // ExchangeResponse HTTP ответ с результатом обмена
 type ExchangeResponseHTTP struct {
 	Success        bool    `json:"success"`
-	TransactionID  int     `json:"transaction_id,omitempty"`
 	ToAmount       float64 `json:"to_amount,omitempty"`
 	ExchangeRate   float64 `json:"exchange_rate,omitempty"`
 	Commission     float64 `json:"commission,omitempty"`
@@ -37,8 +42,25 @@ type ExchangeResponseHTTP struct {
 	Error          string  `json:"error,omitempty"`
 }
 
-// ExchangeCurrency обрабатывает POST /api/exchange
-func (h *ExchangeHandler) ExchangeCurrency(w http.ResponseWriter, r *http.Request) {
+type CalculateExchangeResponseHTTP struct {
+	Success        bool    `json:"success"`
+	ToAmount       float64 `json:"to_amount,omitempty"`
+	ExchangeRate   float64 `json:"exchange_rate,omitempty"`
+	Commission     float64 `json:"commission,omitempty"`
+	CommissionRate float64 `json:"commission_rate,omitempty"`
+	Error          string  `json:"error,omitempty"`
+}
+
+type GetRateResponseHTTP struct {
+	Success      bool    `json:"success"`
+	FromCurrency string  `json:"from_currency,omitempty"`
+	ToCurrency   string  `json:"to_currency,omitempty"`
+	ExchangeRate float64 `json:"exchange_rate,omitempty"`
+	Error        string  `json:"error,omitempty"`
+}
+
+// Exchange обрабатывает POST /api/exchange
+func (h *ExchangeHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		h.writeErrorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
@@ -51,15 +73,10 @@ func (h *ExchangeHandler) ExchangeCurrency(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Преобразуем в внутренний формат
-	exchangeReq := &exchangeService.ExchangeRequest{
-		UserID:       req.UserID,
-		FromCurrency: req.FromCurrency,
-		ToCurrency:   req.ToCurrency,
-		FromAmount:   req.FromAmount,
-	}
+	exchangeReq := csRequests.NewExchangeRequest(req.UserID, req.FromCurrency, req.ToCurrency, req.FromAmount, commissionRate)
 
 	// Выполняем обмен
-	result, err := h.exchangeService.ExchangeCurrency(r.Context(), exchangeReq)
+	result, err := h.currencyService.Exchange(r.Context(), exchangeReq)
 	if err != nil {
 		slog.Error("Exchange failed", "error", err)
 		h.writeErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -68,50 +85,17 @@ func (h *ExchangeHandler) ExchangeCurrency(w http.ResponseWriter, r *http.Reques
 
 	// Формируем успешный ответ
 	response := ExchangeResponseHTTP{
-		Success:        true,
-		TransactionID:  result.Transaction.ID,
-		ToAmount:       result.ToAmount,
+		Success:        result.IsSuccessful,
+		ToAmount:       result.Amount,
 		ExchangeRate:   result.ExchangeRate,
 		Commission:     result.Commission,
-		CommissionRate: result.CommissionRate,
+		CommissionRate: commissionRate,
 	}
 
 	h.writeJSONResponse(w, http.StatusOK, response)
 }
 
-// GetExchangeRate обрабатывает GET /api/rates?from=USD&to=RUB
-func (h *ExchangeHandler) GetExchangeRate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		h.writeErrorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
-
-	fromCurrency := r.URL.Query().Get("from")
-	toCurrency := r.URL.Query().Get("to")
-
-	if fromCurrency == "" || toCurrency == "" {
-		h.writeErrorResponse(w, http.StatusBadRequest, "from and to currencies are required")
-		return
-	}
-
-	rate, err := h.exchangeService.GetExchangeRate(r.Context(), fromCurrency, toCurrency)
-	if err != nil {
-		slog.Error("Failed to get exchange rate", "error", err)
-		h.writeErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	response := map[string]interface{}{
-		"success":       true,
-		"from_currency": fromCurrency,
-		"to_currency":   toCurrency,
-		"exchange_rate": rate,
-	}
-
-	h.writeJSONResponse(w, http.StatusOK, response)
-}
-
-// CalculateExchange обрабатывает GET /api/calculate?from=USD&to=RUB&amount=100
+// CalculateExchange обрабатывает GET /api/calculate?from=Dollar&to=Ruble&amount=100
 func (h *ExchangeHandler) CalculateExchange(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		h.writeErrorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -133,70 +117,53 @@ func (h *ExchangeHandler) CalculateExchange(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	calculation, err := h.exchangeService.CalculateExchangeAmount(r.Context(), fromCurrency, toCurrency, amount)
+	calculateExchangeRequest := csRequests.NewCalculateExchangeRequest(fromCurrency, toCurrency, amount, commissionRate)
+
+	calculation, err := h.currencyService.CalculateExchangeAmount(r.Context(), calculateExchangeRequest)
 	if err != nil {
 		slog.Error("Failed to calculate exchange", "error", err)
 		h.writeErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response := map[string]interface{}{
-		"success":                     true,
-		"from_currency":               calculation.FromCurrency,
-		"to_currency":                 calculation.ToCurrency,
-		"from_amount":                 calculation.FromAmount,
-		"to_amount_before_commission": calculation.ToAmountBeforeCommission,
-		"to_amount_after_commission":  calculation.ToAmountAfterCommission,
-		"exchange_rate":               calculation.ExchangeRate,
-		"commission":                  calculation.Commission,
-		"commission_rate":             calculation.CommissionRate,
+	response := CalculateExchangeResponseHTTP{
+		Success:        calculation.IsSuccessful,
+		ToAmount:       calculation.Amount,
+		ExchangeRate:   calculation.ExchangeRate,
+		Commission:     calculation.Commission,
+		CommissionRate: commissionRate,
 	}
 
 	h.writeJSONResponse(w, http.StatusOK, response)
 }
 
-// RefreshRates обрабатывает POST /api/refresh-rates
-func (h *ExchangeHandler) RefreshRates(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		h.writeErrorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
-
-	err := h.exchangeService.RefreshRates(r.Context())
-	if err != nil {
-		slog.Error("Failed to refresh rates", "error", err)
-		h.writeErrorResponse(w, http.StatusInternalServerError, "failed to refresh rates: "+err.Error())
-		return
-	}
-
-	response := map[string]interface{}{
-		"success": true,
-		"message": "rates refreshed successfully",
-	}
-
-	h.writeJSONResponse(w, http.StatusOK, response)
-}
-
-// GetCachedRates обрабатывает GET /api/cached-rates
-func (h *ExchangeHandler) GetCachedRates(w http.ResponseWriter, r *http.Request) {
+// GetRate обрабатывает GET /api/rate?from=Dollar&to=Ruble
+func (h *ExchangeHandler) GetRate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		h.writeErrorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
-	rates, err := h.exchangeService.GetCachedRates(r.Context())
-	if err != nil {
-		h.writeErrorResponse(w, http.StatusInternalServerError, "failed to get cached rates: "+err.Error())
-		return
-	}
-	if rates == nil {
-		h.writeErrorResponse(w, http.StatusNotFound, "no cached rates available")
+	fromCurrency := r.URL.Query().Get("from")
+	toCurrency := r.URL.Query().Get("to")
+
+	if fromCurrency == "" || toCurrency == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "from and to currencies are required")
 		return
 	}
 
-	response := map[string]interface{}{
-		"success": true,
-		"rates":   rates,
+	rate, err := h.exchangeRatesProvider.GetRate(r.Context(), fromCurrency, toCurrency)
+	if err != nil {
+		slog.Error("Failed to get exchange rate", "error", err)
+		h.writeErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response := GetRateResponseHTTP{
+		Success:      true,
+		FromCurrency: fromCurrency,
+		ToCurrency:   toCurrency,
+		ExchangeRate: rate,
 	}
 
 	h.writeJSONResponse(w, http.StatusOK, response)

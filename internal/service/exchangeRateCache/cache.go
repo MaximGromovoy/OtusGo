@@ -1,7 +1,7 @@
 package exchangeRateCache
 
 import (
-	"OtusGo/internal/service/redisCache"
+	redisDatabase "OtusGo/internal/databases/redis"
 	"context"
 	"fmt"
 	"time"
@@ -10,30 +10,25 @@ import (
 var ttl = time.Minute * 10
 
 type ExchangeRatesCache struct {
-	cache *redisCache.RedisCache
+	db *redisDatabase.RedisDatabase
 }
 
-func NewExchangeRatesCache(config redisCache.CacheConfig) (*ExchangeRatesCache, error) {
-	cache, err := redisCache.NewRedisCache(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create rates cache: %v", err)
-	}
-
+func NewExchangeRatesCache(db *redisDatabase.RedisDatabase) (*ExchangeRatesCache, error) {
 	return &ExchangeRatesCache{
-		cache: cache,
+		db: db,
 	}, nil
 }
 
 // SetExchangeRate сохраняет курс обмена между двумя валютами
 func (r *ExchangeRatesCache) Set(ctx context.Context, fromCurrency, toCurrency string, rate float64) error {
-	return r.cache.Set(ctx, r.buildRateKey(fromCurrency, toCurrency), rate, ttl)
+	return r.db.Set(ctx, r.buildRateKey(fromCurrency, toCurrency), rate, ttl)
 }
 
 // GetExchangeRate получает курс обмена между двумя валютами
 func (r *ExchangeRatesCache) Get(ctx context.Context, fromCurrency, toCurrency string) (float64, error) {
 
 	var rate float64
-	err := r.cache.Get(ctx, r.buildRateKey(fromCurrency, toCurrency), &rate)
+	err := r.db.Get(ctx, r.buildRateKey(fromCurrency, toCurrency), &rate)
 	if err != nil {
 		return 0, err
 	}
@@ -43,7 +38,7 @@ func (r *ExchangeRatesCache) Get(ctx context.Context, fromCurrency, toCurrency s
 
 // GetAll возвращает все закэшированные курсы валют
 func (r *ExchangeRatesCache) GetAll(ctx context.Context) (map[string]float64, error) {
-	keys, err := r.cache.Keys(ctx, "rate:*")
+	keys, err := r.db.Keys(ctx, "rate:*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get rate keys: %w", err)
 	}
@@ -53,7 +48,7 @@ func (r *ExchangeRatesCache) GetAll(ctx context.Context) (map[string]float64, er
 	// Получаем значения для каждого ключа
 	for _, key := range keys {
 		var rate float64
-		if err := r.cache.Get(ctx, key, &rate); err != nil {
+		if err := r.db.Get(ctx, key, &rate); err != nil {
 			continue
 		}
 
@@ -66,16 +61,16 @@ func (r *ExchangeRatesCache) GetAll(ctx context.Context) (map[string]float64, er
 
 // IsRateExpired проверяет, истек ли курс валют
 func (r *ExchangeRatesCache) Exists(ctx context.Context, fromCurrency, toCurrency string) (bool, error) {
-	return r.cache.Exists(ctx, r.buildRateKey(fromCurrency, toCurrency))
+	return r.db.Exists(ctx, r.buildRateKey(fromCurrency, toCurrency))
 }
 
 func (r *ExchangeRatesCache) Clear(ctx context.Context) error {
-	return r.cache.DeleteByPattern(ctx, "*")
+	return r.db.DeleteByPattern(ctx, "*")
 }
 
 // Close закрывает соединение с Redis
 func (r *ExchangeRatesCache) Close() error {
-	return r.cache.Close()
+	return r.db.Close()
 }
 
 // buildRateKey создает ключ для курса валют

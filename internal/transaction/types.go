@@ -18,6 +18,8 @@ const (
 	TransactionStatusPending   TransactionStatus = "pending"   // В процессе
 	TransactionStatusCompleted TransactionStatus = "completed" // Завершена
 	TransactionStatusFailed    TransactionStatus = "failed"    // Ошибка
+	TransactionStatusCancelled TransactionStatus = "cancelled" // Отменена
+	TransactionStatusRejected  TransactionStatus = "rejected"  // Отклонена
 )
 
 // Transaction представляет запись о транзакции

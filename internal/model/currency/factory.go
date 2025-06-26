@@ -10,7 +10,6 @@ func NewCurrency(currencyType string, value float64) CurrencyInterface {
 		name:  currencyType,
 		code:  config.Code,
 		value: value,
-		id:    GetNextID(currencyType),
 	}
 
 	return createCurrency(currencyType, base)
@@ -26,7 +25,6 @@ func NewCurrencyWithID(currencyType string, value float64, id int) CurrencyInter
 		name:  currencyType,
 		code:  config.Code,
 		value: value,
-		id:    id,
 	}
 
 	return createCurrency(currencyType, base)

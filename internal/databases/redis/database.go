@@ -1,4 +1,4 @@
-package redisCache
+package redisDatabase
 
 import (
 	"context"
@@ -9,21 +9,15 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type RedisCache struct {
+type RedisDatabase struct {
 	client *redis.Client
 }
 
-type CacheConfig struct {
-	Addr     string
-	Password string
-	DB       int
-}
-
-func NewRedisCache(config CacheConfig) (*RedisCache, error) {
+func NewRedisDatabase(config *Configuration) (*RedisDatabase, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:         config.Addr,
-		Password:     config.Password,
-		DB:           config.DB,
+		Addr:         config.address,
+		Password:     config.password,
+		DB:           config.dbNumber,
 		DialTimeout:  5 * time.Second,
 		ReadTimeout:  3 * time.Second,
 		WriteTimeout: 3 * time.Second,
@@ -39,13 +33,13 @@ func NewRedisCache(config CacheConfig) (*RedisCache, error) {
 		return nil, fmt.Errorf("failed to connect to Redis: %v", err)
 	}
 
-	return &RedisCache{
+	return &RedisDatabase{
 		client: rdb,
 	}, nil
 }
 
 // Get универсальный метод чтения из кэша
-func (r *RedisCache) Get(ctx context.Context, key string, dest interface{}) error {
+func (r *RedisDatabase) Get(ctx context.Context, key string, dest interface{}) error {
 	val, err := r.client.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -63,7 +57,7 @@ func (r *RedisCache) Get(ctx context.Context, key string, dest interface{}) erro
 }
 
 // Set универсальный метод записи в кэш
-func (r *RedisCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (r *RedisDatabase) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	data, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("failed to marshal value: %v", err)
@@ -78,22 +72,22 @@ func (r *RedisCache) Set(ctx context.Context, key string, value interface{}, ttl
 }
 
 // GetString получает строковое значение
-func (r *RedisCache) GetString(ctx context.Context, key string) (string, error) {
+func (r *RedisDatabase) GetString(ctx context.Context, key string) (string, error) {
 	return r.client.Get(ctx, key).Result()
 }
 
 // SetString сохраняет строковое значение
-func (r *RedisCache) SetString(ctx context.Context, key, value string, ttl time.Duration) error {
+func (r *RedisDatabase) SetString(ctx context.Context, key, value string, ttl time.Duration) error {
 	return r.client.Set(ctx, key, value, ttl).Err()
 }
 
 // Delete удаляет ключ из кэша
-func (r *RedisCache) Delete(ctx context.Context, key string) error {
+func (r *RedisDatabase) Delete(ctx context.Context, key string) error {
 	return r.client.Del(ctx, key).Err()
 }
 
 // DeleteByPattern удаляет ключи по паттерну
-func (r *RedisCache) DeleteByPattern(ctx context.Context, pattern string) error {
+func (r *RedisDatabase) DeleteByPattern(ctx context.Context, pattern string) error {
 	// Получаем все ключи по паттерну
 	keys, err := r.client.Keys(ctx, pattern).Result()
 	if err != nil {
@@ -112,23 +106,23 @@ func (r *RedisCache) DeleteByPattern(ctx context.Context, pattern string) error 
 }
 
 // Exists проверяет существование ключа
-func (r *RedisCache) Exists(ctx context.Context, key string) (bool, error) {
+func (r *RedisDatabase) Exists(ctx context.Context, key string) (bool, error) {
 	count, err := r.client.Exists(ctx, key).Result()
 	return count > 0, err
 }
 
 // Keys возвращает ключи по паттерну
-func (r *RedisCache) Keys(ctx context.Context, pattern string) ([]string, error) {
+func (r *RedisDatabase) Keys(ctx context.Context, pattern string) ([]string, error) {
 	return r.client.Keys(ctx, pattern).Result()
 }
 
 // Close закрывает соединение с Redis
-func (r *RedisCache) Close() error {
+func (r *RedisDatabase) Close() error {
 	return r.client.Close()
 }
 
 // Ping проверяет соединение с Redis
-func (r *RedisCache) Ping(ctx context.Context) error {
+func (r *RedisDatabase) Ping(ctx context.Context) error {
 	_, err := r.client.Ping(ctx).Result()
 	return err
 }

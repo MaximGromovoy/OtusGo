@@ -1,10 +1,8 @@
-package models
+package logger
 
-import (
-	"time"
-)
+import "time"
 
-type OperationLog struct {
+type log struct {
 	TransactionID int           `json:"transaction_id"`
 	UserID        int           `json:"user_id"`
 	Operation     string        `json:"operation"`
@@ -16,5 +14,5 @@ type OperationLog struct {
 	Commission    float64       `json:"commission"`
 	Timestamp     time.Time     `json:"timestamp"`
 	Duration      time.Duration `json:"duration"`
-	ErrorMessage  string        `json:"error_message,omitempty"`
+	ErrorMessage  string        `json:"error_message"`
 }

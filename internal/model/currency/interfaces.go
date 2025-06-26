@@ -4,5 +4,4 @@ type CurrencyInterface interface {
 	GetName() string
 	GetCode() string
 	GetValue() float64
-	GetID() int
 }

@@ -6,7 +6,7 @@ import (
 
 // NewExchangeTransaction создает транзакцию обмена валют
 func NewExchangeTransaction(userID int, fromCurrency string, toCurrency string,
-	fromAmount, toAmount, exchangeRate, commission float64) *Transaction {
+	fromAmount float64) *Transaction {
 	return &Transaction{
 		UserID:       userID,
 		Type:         TransactionTypeExchange,
@@ -14,9 +14,6 @@ func NewExchangeTransaction(userID int, fromCurrency string, toCurrency string,
 		FromCurrency: fromCurrency,
 		ToCurrency:   toCurrency,
 		FromAmount:   fromAmount,
-		ToAmount:     toAmount,
-		ExchangeRate: exchangeRate,
-		Commission:   commission,
 		Timestamp:    time.Now(),
 	}
 }
