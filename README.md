@@ -111,7 +111,7 @@ go test ./internal/application/services/exchange -v
 - `server` - HTTP сервер
 - `console` - консольное приложение
 
-## 🔍 Примеры использования
+## Примеры использования
 
 ### Получение курса через HTTP API
 
