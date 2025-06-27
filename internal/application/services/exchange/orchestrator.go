@@ -6,6 +6,7 @@ import (
 	"OtusGo/internal/domain/services/exchangeService"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -42,8 +43,8 @@ func NewExchangeOrchestratorRequest(usedId int,
 	amount, commissionRate float64) *ExchangeOrchestratorRequest {
 	return &ExchangeOrchestratorRequest{
 		UserId:         usedId,
-		FromCurrency:   fromCurrency,
-		ToCurrency:     toCurrency,
+		FromCurrency:   strings.TrimSpace(fromCurrency),
+		ToCurrency:     strings.TrimSpace(toCurrency),
 		Amount:         amount,
 		CommissionRate: commissionRate,
 	}
@@ -66,6 +67,11 @@ func NewExchangeOrchestratorResponse(amount, commission, exchangeRate float64) *
 // Exchange координирует полный процесс обмена валют
 func (s *ExchangeOrchestrator) Exchange(ctx context.Context, req *ExchangeOrchestratorRequest) (*ExchangeOrchestratorResponse, error) {
 	start := time.Now()
+
+	// Валидация запроса
+	if err := s.validateRequest(req); err != nil {
+		return nil, fmt.Errorf("validation failed: %w", err)
+	}
 
 	// Создаем транзакцию
 	ts := transaction.NewExchangeTransaction(
@@ -108,4 +114,50 @@ func (s *ExchangeOrchestrator) Exchange(ctx context.Context, req *ExchangeOrches
 
 	return NewExchangeOrchestratorResponse(exchangeResponse.Amount,
 		exchangeResponse.Commission, exchangeRate), nil
+}
+
+// validateRequest выполняет валидацию запроса на обмен валют
+func (s *ExchangeOrchestrator) validateRequest(req *ExchangeOrchestratorRequest) error {
+	if req == nil {
+		return fmt.Errorf("request cannot be nil")
+	}
+
+	if req.UserId <= 0 {
+		return fmt.Errorf("user ID must be positive, got %d", req.UserId)
+	}
+
+	if strings.TrimSpace(req.FromCurrency) == "" {
+		return fmt.Errorf("from currency cannot be empty")
+	}
+
+	if strings.TrimSpace(req.ToCurrency) == "" {
+		return fmt.Errorf("to currency cannot be empty")
+	}
+
+	if req.FromCurrency == req.ToCurrency {
+		return fmt.Errorf("from currency and to currency cannot be the same: %s", req.FromCurrency)
+	}
+
+	if req.Amount < 0 {
+		return fmt.Errorf("amount cannot be negative, got %f", req.Amount)
+	}
+
+	if req.CommissionRate < 0 {
+		return fmt.Errorf("commission rate cannot be negative, got %f", req.CommissionRate)
+	}
+
+	if req.CommissionRate >= 100 {
+		return fmt.Errorf("commission rate cannot be 100%% or more, got %f", req.CommissionRate)
+	}
+
+	// Проверяем формат валютных кодов (должны быть 3 символа)
+	if len(strings.TrimSpace(req.FromCurrency)) != 3 {
+		return fmt.Errorf("from currency must be 3 characters long, got %s", req.FromCurrency)
+	}
+
+	if len(strings.TrimSpace(req.ToCurrency)) != 3 {
+		return fmt.Errorf("to currency must be 3 characters long, got %s", req.ToCurrency)
+	}
+
+	return nil
 }
